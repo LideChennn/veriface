@@ -31,7 +31,7 @@ def renet_block(input_channels, out_channels, num_residuals, first_block=False):
     blk = []
     for i in range(num_residuals):
         if i == 0 and not first_block:
-            print("first_block ")
+            # print("first_block ")
             blk.append(
                 ResNetModel(input_channels, out_channels, use_1x1conv=True, stride=2)
             )
@@ -73,11 +73,11 @@ class FaceNetModel(nn.Module):
 
 
 #
-x = torch.rand(size=(3, 3, 224, 224))
-facenet = FaceNetModel()
+# x = torch.rand(size=(3, 3, 224, 224))
+# facenet = FaceNetModel()
 # for layer in facenet.getNet():
 #     x = layer(x)
 #     print(layer.__class__.__name__, 'output shape:\t', x.shape)
 
-x = facenet(x)
-print("total", 'output shape:\t', x.shape)
+# x = facenet(x)
+# print("total", 'output shape:\t', x.shape)

@@ -5,6 +5,7 @@ from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
+
 class LFWTripletDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
@@ -72,17 +73,9 @@ class LFWTripletDataset(Dataset):
 
         return anchor_image, positive_image, negative_image
 
-
-image_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    # 图片三通道进行归一化
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
-
-lfw_root = "../data/lfw"
-dataset = LFWTripletDataset(root_dir=lfw_root, transform=image_transform)
-
-triplet_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-
-
+#
+#
+# lfw_root = "../data/lfw"
+# dataset = LFWTripletDataset(root_dir=lfw_root, transform=image_transform)
+#
+# triplet_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
