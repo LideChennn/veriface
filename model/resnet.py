@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class ResNetModel(nn.Module):
@@ -26,15 +27,6 @@ class ResNetModel(nn.Module):
         return self.relu(y)
 
 
-# 高宽减半 通道数加倍
-b1 = nn.Sequential(
-    nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
-    nn.BatchNorm2d(64),
-    nn.ReLU(),
-    nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-)
-
-
 def renet_block(input_channels, out_channels, num_residuals, first_block=False):
     blk = []
     for i in range(num_residuals):
@@ -48,19 +40,44 @@ def renet_block(input_channels, out_channels, num_residuals, first_block=False):
     return blk
 
 
-b2 = nn.Sequential(*renet_block(64, 64, num_residuals=2, first_block=True))
-b3 = nn.Sequential(*renet_block(64, 128, num_residuals=2))
-b4 = nn.Sequential(*renet_block(128, 256, num_residuals=2))
-b5 = nn.Sequential(*renet_block(256, 512, num_residuals=2))
+class FaceNetModel(nn.Module):
+    def __init__(self):
+        super(FaceNetModel, self).__init__()
+        # 高宽减半 通道数加倍
+        b1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        )
+        b2 = nn.Sequential(*renet_block(64, 64, num_residuals=2, first_block=True))
+        b3 = nn.Sequential(*renet_block(64, 128, num_residuals=2))
+        b4 = nn.Sequential(*renet_block(128, 256, num_residuals=2))
+        b5 = nn.Sequential(*renet_block(256, 512, num_residuals=2))
+
+        self.net = nn.Sequential(b1, b2, b3, b4, b5,
+                                 nn.AdaptiveAvgPool2d((1, 1)),
+                                 nn.Flatten())
+        self.fc = nn.Linear(512, 128)
+
+    def forward(self, x):
+        x = self.net(x)
+        # l2 归一化
+        x = F.normalize(x, p=2, dim=1)
+        # embedding
+        x = self.fc(x)
+        return x
+
+    def getNet(self):
+        return self.net
 
 
-net = nn.Sequential(b1, b2, b3, b4, b5,
-                    nn.AdaptiveAvgPool2d((1, 1)),
-                    nn.Flatten(),
-                    nn.Linear(512, 128))
-
-
+#
 x = torch.rand(size=(3, 3, 224, 224))
-for layer in net:
-    x = layer(x)
-    print(layer.__class__.__name__, 'output shape:\t', x.shape)
+facenet = FaceNetModel()
+# for layer in facenet.getNet():
+#     x = layer(x)
+#     print(layer.__class__.__name__, 'output shape:\t', x.shape)
+
+x = facenet(x)
+print("total", 'output shape:\t', x.shape)
