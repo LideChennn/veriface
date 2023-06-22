@@ -50,10 +50,11 @@ class FaceNetModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         )
-        b2 = nn.Sequential(*renet_block(64, 64, num_residuals=2, first_block=True))
-        b3 = nn.Sequential(*renet_block(64, 128, num_residuals=2))
-        b4 = nn.Sequential(*renet_block(128, 256, num_residuals=2))
-        b5 = nn.Sequential(*renet_block(256, 512, num_residuals=2))
+        # resnet v50
+        b2 = nn.Sequential(*renet_block(64, 64, num_residuals=3, first_block=True))
+        b3 = nn.Sequential(*renet_block(64, 128, num_residuals=4))
+        b4 = nn.Sequential(*renet_block(128, 256, num_residuals=6))
+        b5 = nn.Sequential(*renet_block(256, 512, num_residuals=3))
 
         self.net = nn.Sequential(b1, b2, b3, b4, b5,
                                  nn.AdaptiveAvgPool2d((1, 1)),
@@ -70,14 +71,3 @@ class FaceNetModel(nn.Module):
 
     def getNet(self):
         return self.net
-
-
-#
-# x = torch.rand(size=(3, 3, 224, 224))
-# facenet = FaceNetModel()
-# for layer in facenet.getNet():
-#     x = layer(x)
-#     print(layer.__class__.__name__, 'output shape:\t', x.shape)
-
-# x = facenet(x)
-# print("total", 'output shape:\t', x.shape)

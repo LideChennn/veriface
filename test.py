@@ -10,7 +10,7 @@ from util.object_detect import object_detect
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 加载训练好的模型
-model_path = "./weight/facenet_checkpoint16.pth"
+model_path = "./weight/facenet_checkpoint35_0.019.pth"
 facenet = FaceNetModel().to(device)
 facenet.load_state_dict(torch.load(model_path))
 facenet.eval()
@@ -36,7 +36,6 @@ def preprocess(image_path):
 def euclidean_distance(a, b):
     return np.linalg.norm(a - b)
 
-
 # 从文件夹中加载人脸库
 face_database_path = "./data/face/database"
 face_database = {}
@@ -54,7 +53,7 @@ for person_name in os.listdir(face_database_path):
         face_database[person_name].append(embedding)
 
 # 读取待识别的图像
-test_image_path = "./data/face/test/cxk"
+test_image_path = "./data/face/test/BarackObama"
 test_image_tensor = preprocess(test_image_path).to(device)
 
 # 提取待识别图像的特征向量

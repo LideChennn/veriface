@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, average_precision_score
 from torch.utils.data import random_split, DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import transforms
 import numpy as np
 from model.resnet import FaceNetModel
@@ -20,8 +21,8 @@ dataset = LFWTripletDataset(root_dir=lfw_root,
                                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                             ]))
 
-# 70%为训练集
-train_size = int(0.7 * len(dataset))
+# 80%为训练集
+train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
@@ -42,7 +43,12 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 total_train_step = 0  # 记录训练的次数
 total_test_step = 0  # 记录测试的次数
 least_loss = float('inf')
-epochs = 20
+epochs = 30
+writer = SummaryWriter('./runs/logs')
+# 从训练数据加载器中获取一个样本输入
+sample_images, sample_labels = next(iter(train_dataloader))
+# 将模型和样本输入添加到 TensorBoard
+writer.add_graph(facenet, sample_images)
 
 for epoch in range(1, epochs + 1):
     print("--------------第{}轮训练开始--------------".format(epoch))
@@ -68,6 +74,8 @@ for epoch in range(1, epochs + 1):
         if total_train_step % 100 == 0:
             print("训练次数:{}, loss:{}".format(total_train_step, loss))
 
+    writer.add_scalar('Loss/train', train_loss, epoch)
+
     # 积累机会，调用道step_size = 10 就会更新学习率
     scheduler.step()
 
@@ -75,6 +83,7 @@ for epoch in range(1, epochs + 1):
     # 初始化距离和标签列表
     distances = []
     labels = []
+    running_val_loss = 0.0
 
     with torch.no_grad():
         for anchors, positives, negatives in test_dataloader:
@@ -95,18 +104,21 @@ for epoch in range(1, epochs + 1):
 
             total_test_step += 1
 
-    # 计算阈值
-    threshold = np.percentile(distances, 50)  # 例如，使用距离的中位数作为阈值
-    # 为距离分配类别
-    predictions = [1 if d <= threshold else 0 for d in distances]
-    # 计算精度、召回率和 F1 分数
-    precision, recall, f1_score, _ = precision_recall_fscore_support(labels, predictions, average='binary')
+    # 计算 mAP
+    y_true = np.array(labels)
+    y_scores = np.array(distances)
 
-    print("学习率：{}".format(scheduler.get_lr()))
-    print("Precision: {:.4f}, Recall: {:.4f}, F1 Score: {:.4f}".format(precision, recall, f1_score))
-    print(f"Epoch: {epoch}/{epochs}, Train Loss: {train_loss:.4f}")
+    unique_labels = np.unique(y_true)
+    aps = []
 
-    if train_loss < least_loss:
-        print("找到更优的训练结果,保存模型")
-        torch.save(facenet.state_dict(), "./weight/facenet_checkpoint{}.pth".format(epoch))
-        least_loss = train_loss
+    for label in unique_labels:
+        label_mask = (y_true == label)
+        ap = average_precision_score(label_mask, y_scores[label_mask])
+        aps.append(ap)
+
+    mean_ap = np.mean(aps)
+    print("Mean Average Precision (mAP) at epoch {}: {}".format(epoch, mean_ap))
+
+    writer.add_scalar('mAP/test', mean_ap, epoch)
+
+writer.close()
