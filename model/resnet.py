@@ -71,3 +71,17 @@ class FaceNetModel(nn.Module):
 
     def getNet(self):
         return self.net
+
+
+if __name__ == '__main__':
+    # 创建一个随机张量，大小为[batch_size, channels, height, width]
+    test_tensor = torch.randn(3, 3, 224, 224)
+
+    # 实例化FaceNetModel
+    model = FaceNetModel()
+
+    # 将张量传递给模型并获得输出
+    output = model(test_tensor)
+
+    # 打印输出张量的大小
+    print("Output shape:", output.shape)

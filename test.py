@@ -18,9 +18,7 @@ facenet.eval()
 
 # 计算阈值，或从训练过程中确定
 threshold = 1.0
-# 6 6 8
-# 7 6 8
-# 8 10 7
+
 
 # 对一张图像进行预处理，获取适用于模型的图像张量
 def preprocess(image_path):
@@ -77,6 +75,24 @@ def compute_distances(test_embedding, face_database):
         distances[person_name] = min_distance
 
     return distances
+
+
+# 计算待识别图像与人脸库中所有图像的平均欧氏距离 返回值distances 字典 {person_name : min_distance}
+# def compute_distances(test_embedding, face_database):
+#     distances = {}
+#
+#     for person_name, embeddings in face_database.items():
+#         avg_distance = 0
+#
+#         # 计算平均欧氏距离
+#         for embedding in embeddings:
+#             distance = euclidean_distance(test_embedding, embedding)
+#             avg_distance += distance
+#
+#         avg_distance /= len(embeddings)
+#         distances[person_name] = avg_distance
+#
+#     return distances
 
 
 # 根据阈值判断待识别图像与人脸库中哪个人脸最接近

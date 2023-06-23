@@ -1,13 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import precision_recall_fscore_support, average_precision_score
 from torch.utils.data import random_split, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import transforms
-import numpy as np
 from model.resnet import FaceNetModel
-import torch.nn.functional as F
 from util.dataset import LFWTripletDataset
 
 # 定义训练设备cpu
