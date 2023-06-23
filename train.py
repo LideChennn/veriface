@@ -18,7 +18,7 @@ dataset = LFWTripletDataset(root_dir=lfw_root,
                             transform=transforms.Compose([
                                 transforms.Resize((96, 96)),
                                 transforms.ToTensor(),
-                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                                transforms.Normalize(mean= [0.5865, 0.4551, 0.3913], std=[0.2292, 0.2240, 0.2251])
                             ]))
 
 # 80%为训练集
@@ -80,10 +80,8 @@ for epoch in range(1, epochs + 1):
     scheduler.step()
 
     facenet.eval()
-    # 初始化距离和标签列表
-    distances = []
-    labels = []
     running_val_loss = 0.0
+    num_val_batches = 0
 
     with torch.no_grad():
         for anchors, positives, negatives in test_dataloader:
@@ -93,32 +91,14 @@ for epoch in range(1, epochs + 1):
             positives_embeddings = facenet(positives)
             negatives_embeddings = facenet(negatives)
 
-            positive_distances = F.pairwise_distance(anchors_embeddings, positives_embeddings, p=2.0)  # 计算欧式举例
-            negative_distances = F.pairwise_distance(anchors_embeddings, negatives_embeddings, p=2.0)
+            # 计算测试集损失
+            val_loss = loss_function(anchors_embeddings, positives_embeddings, negatives_embeddings)
+            running_val_loss += val_loss.item()
+            num_val_batches += 1
 
-            distances.extend(positive_distances.tolist())
-            distances.extend(negative_distances.tolist())
-
-            labels.extend([1] * positive_distances.size(0))  # 正例对标签为 1
-            labels.extend([0] * negative_distances.size(0))  # 负例对标签为 0
-
-            total_test_step += 1
-
-    # 计算 mAP
-    y_true = np.array(labels)
-    y_scores = np.array(distances)
-
-    unique_labels = np.unique(y_true)
-    aps = []
-
-    for label in unique_labels:
-        label_mask = (y_true == label)
-        ap = average_precision_score(label_mask, y_scores[label_mask])
-        aps.append(ap)
-
-    mean_ap = np.mean(aps)
-    print("Mean Average Precision (mAP) at epoch {}: {}".format(epoch, mean_ap))
-
-    writer.add_scalar('mAP/test', mean_ap, epoch)
+        # 计算平均测试损失
+        val_loss = running_val_loss / num_val_batches
+        print("Epoch: {}, Validation Loss: {}".format(epoch, val_loss))
+        writer.add_scalar('Loss/validation', val_loss, epoch)
 
 writer.close()
