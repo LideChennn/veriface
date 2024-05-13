@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 
 class ResNetModel(nn.Module):
@@ -21,8 +22,11 @@ class ResNetModel(nn.Module):
     def forward(self, x):
         y = self.relu(self.bn1(self.conv1(x)))
         y = self.bn2(self.conv2(y))
+
+        # 调节通道数
         if self.conv3:
             x = self.conv3(x)
+
         y += x
         return self.relu(y)
 
@@ -31,11 +35,10 @@ def renet_block(input_channels, out_channels, num_residuals, first_block=False):
     blk = []
     for i in range(num_residuals):
         if i == 0 and not first_block:
-            # print("first_block ")
-            blk.append(
-                ResNetModel(input_channels, out_channels, use_1x1conv=True, stride=2)
-            )
+            # 高宽减半，通道数加倍
+            blk.append(ResNetModel(input_channels, out_channels, use_1x1conv=True, stride=2))
         else:
+            # 第一个残差块不需要高宽减半
             blk.append(ResNetModel(out_channels, out_channels))
     return blk
 
@@ -64,7 +67,7 @@ class FaceNetModel(nn.Module):
     def forward(self, x):
         x = self.net(x)
         # l2 归一化
-        x = F.normalize(x, p=2, dim=1)
+        x = F.normalize(x, p=2)
         # embedding
         x = self.fc(x)
         return x
@@ -82,6 +85,14 @@ if __name__ == '__main__':
 
     # 将张量传递给模型并获得输出
     output = model(test_tensor)
+    # 创建一个 SummaryWriter 对象来写入日志
+    writer = SummaryWriter("../runs/model/logs")
+    # 将模型添加到 TensorBoard
+    writer.add_graph(model, test_tensor)
 
     # 打印输出张量的大小
     print("Output shape:", output.shape)
+
+    writer.close()
+
+

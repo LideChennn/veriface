@@ -45,6 +45,7 @@ def rotated_img(img, angle=90):
     return rotated_frame
 
 
+# 人脸录入
 def capture_faces(people_name, file_prefix='cropped_face_'):
     # 如果存在，就重新保存文件
     delete_or_create_folder(f"./data/realTime/database/{people_name}")
@@ -55,6 +56,7 @@ def capture_faces(people_name, file_prefix='cropped_face_'):
 
     frame_count = 0  # 添加一个帧计数器
 
+    # 对每一帧处理
     while cap.isOpened():
         ret, img = cap.read()  # 读取一帧图片
         if not ret:
@@ -83,6 +85,7 @@ def capture_faces(people_name, file_prefix='cropped_face_'):
     cap.release()
 
 
+# 人脸识别
 def recognize_faces(facenet, face_database, threshold, device):
     # 读取视频信息。
     cap = cv.VideoCapture("http://admin:admin@10.134.43.118:8081/")  # @前为账号密码，@后为ip地址
@@ -105,6 +108,7 @@ def recognize_faces(facenet, face_database, threshold, device):
         for (x, y, w, h) in face:
             cv.rectangle(rotated_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
             cropped_face = rotated_frame[y:y + h, x:x + w]
+
             if cropped_face is not None:
                 closest_name, closest_distance = \
                     recognize_face(cropped_face, face_database, threshold, facenet, device)

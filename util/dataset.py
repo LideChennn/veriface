@@ -3,7 +3,6 @@ import random
 import cv2
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 
 
 class LFWTripletDataset(Dataset):
@@ -33,12 +32,12 @@ class LFWTripletDataset(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
+    # 从数据集中获取锚点、正例和负例
     def __getitem__(self, index):
-        # 从数据集中获取锚点、正例和负例
         anchor_path = self.image_paths[index]
         anchor_name = self.person_names[index]
 
-        # 确保至少有两张图像可用于选择正例, 如果一个人少于两张图片，就选另外一个人当anchor
+        # 选取一个人的照片   确保至少有两张图像可用于选择正例, 如果一个人少于两张图片，就选另外一个人当anchor
         while len(self.name_to_indices[anchor_name]) < 2:
             index = random.randint(0, len(self.image_paths) - 1)
             anchor_path, anchor_name = self.image_paths[index], self.person_names[index]
@@ -51,31 +50,22 @@ class LFWTripletDataset(Dataset):
         negative_name = random.choice([name for name in set(self.person_names) if name != anchor_name])
         negative_path = self.image_paths[random.choice(self.name_to_indices[negative_name])]
 
-        # 读取并转换图像
+        # opencv读取并转换图像 # 将图像转换为 PIL Image 对象
         anchor_image = cv2.imread(anchor_path)
-        anchor_image = cv2.cvtColor(anchor_image, cv2.COLOR_BGR2RGB)
-
         positive_image = cv2.imread(positive_path)
-        positive_image = cv2.cvtColor(positive_image, cv2.COLOR_BGR2RGB)
-
         negative_image = cv2.imread(negative_path)
+        anchor_image = cv2.cvtColor(anchor_image, cv2.COLOR_BGR2RGB)
+        positive_image = cv2.cvtColor(positive_image, cv2.COLOR_BGR2RGB)
         negative_image = cv2.cvtColor(negative_image, cv2.COLOR_BGR2RGB)
 
-        # 将图像转换为 PIL Image 对象
         anchor_image = Image.fromarray(anchor_image)
         positive_image = Image.fromarray(positive_image)
         negative_image = Image.fromarray(negative_image)
 
+        # 转化格式，pytorch训练需要tensor数据类型
         if self.transform:
             anchor_image = self.transform(anchor_image)
             positive_image = self.transform(positive_image)
             negative_image = self.transform(negative_image)
 
         return anchor_image, positive_image, negative_image
-
-#
-#
-# lfw_root = "../data/lfw"
-# dataset = LFWTripletDataset(root_dir=lfw_root, transform=image_transform)
-#
-# triplet_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)

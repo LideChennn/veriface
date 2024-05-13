@@ -15,7 +15,8 @@ dataset = LFWTripletDataset(root_dir=lfw_root,
                             transform=transforms.Compose([
                                 transforms.Resize((96, 96)),
                                 transforms.ToTensor(),
-                                transforms.Normalize(mean= [0.5865, 0.4551, 0.3913], std=[0.2292, 0.2240, 0.2251])
+                                # 标准化 加速收敛：标准化后的数据分布更接近标准正态分布，有利于梯度下降算法的收敛。
+                                transforms.Normalize(mean=[0.5865, 0.4551, 0.3913], std=[0.2292, 0.2240, 0.2251])
                             ]))
 
 # 80%为训练集
@@ -23,29 +24,28 @@ train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-train_dataloader = DataLoader(train_dataset, batch_size=2, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=2, shuffle=False)
+train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
 # 模型
 facenet = FaceNetModel().to(device)
 
-# 损失函数
-loss_function = nn.TripletMarginLoss(margin=1.0, p=2)
+# 损失函数 欧式距离
+loss_function = nn.TripletMarginLoss(margin=0.7, p=2)
 
-# 优化器
+# 自适应梯度下降优化器
 optimizer = optim.Adam(facenet.parameters(), lr=0.0001)
+
 # 自动调节学习率
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 total_train_step = 0  # 记录训练的次数
 total_test_step = 0  # 记录测试的次数
 least_loss = float('inf')
+
 epochs = 30
-writer = SummaryWriter('./runs/logs')
+writer = SummaryWriter('runs/model/logs')
 # 从训练数据加载器中获取一个样本输入
-sample_images, sample_labels = next(iter(train_dataloader))
-# 将模型和样本输入添加到 TensorBoard
-writer.add_graph(facenet, sample_images)
 
 for epoch in range(1, epochs + 1):
     print("--------------第{}轮训练开始--------------".format(epoch))
@@ -63,8 +63,8 @@ for epoch in range(1, epochs + 1):
 
         loss = loss_function(anchors_embeddings, positives_embeddings, negatives_embeddings)
 
-        loss.backward()
-        optimizer.step()
+        loss.backward()  # 反向传播计算梯度
+        optimizer.step()  # 优化器根据参数里的梯度，调节参数
 
         train_loss += loss.item() / len(train_dataloader)
         total_train_step += 1
@@ -76,7 +76,7 @@ for epoch in range(1, epochs + 1):
     # 积累机会，调用道step_size = 10 就会更新学习率
     scheduler.step()
 
-    facenet.eval()
+    facenet.eval()  # dropout
     running_val_loss = 0.0
     num_val_batches = 0
 

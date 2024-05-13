@@ -16,7 +16,7 @@ facenet = FaceNetModel().to(device)
 facenet.load_state_dict(torch.load(model_path))
 facenet.eval()
 
-# 计算阈值，或从训练过程中确定
+# 计算阈值，或从测试过程中确定
 threshold = 1.0
 
 
@@ -77,25 +77,7 @@ def compute_distances(test_embedding, face_database):
     return distances
 
 
-# 计算待识别图像与人脸库中所有图像的平均欧氏距离 返回值distances 字典 {person_name : min_distance}
-# def compute_distances(test_embedding, face_database):
-#     distances = {}
-#
-#     for person_name, embeddings in face_database.items():
-#         avg_distance = 0
-#
-#         # 计算平均欧氏距离
-#         for embedding in embeddings:
-#             distance = euclidean_distance(test_embedding, embedding)
-#             avg_distance += distance
-#
-#         avg_distance /= len(embeddings)
-#         distances[person_name] = avg_distance
-#
-#     return distances
-
-
-# 根据阈值判断待识别图像与人脸库中哪个人脸最接近
+# 识别一个人脸图片
 def recognize_face(test_image_path, face_database, threshold):
     test_image_tensor = preprocess(test_image_path).to(device)
 
@@ -121,6 +103,7 @@ def recognize_face(test_image_path, face_database, threshold):
     return closest_name == label
 
 
+# 识别一个文件夹下的图片
 def recognize_dir(input_dir, face_database):
     hit = 0
     img_sum = 0
@@ -140,6 +123,5 @@ if __name__ == "__main__":
     face_database = load_face_database(face_database_path)
 
     recognize_dir("./data/face/test/cxk", face_database)
-
     recognize_dir("./data/face/test/trump", face_database)
     recognize_dir("./data/face/test/dingzhen", face_database)

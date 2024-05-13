@@ -51,7 +51,7 @@ def load_face_database(face_database_path):
 face_database = load_face_database('./data/realTime/database')
 
 
-# 将 capture_faces 函数定义放在此处
+# 录入人脸
 def start_capture():
     name = name_entry.get()
     if not name:
@@ -80,6 +80,7 @@ def start_capture():
         face_database[name].append(embedding)
 
 
+# 录入人脸后更新人脸数据库
 def update_face_database(name):
     # 更新 face_database
     face_database_path = './data/realTime/database'
@@ -101,6 +102,7 @@ def update_face_database(name):
         face_database[name].append(embedding)
 
 
+# 识别人脸
 def start_recognition():
     if not face_database:
         messagebox.showerror("Error", "人脸数据库为空.")
